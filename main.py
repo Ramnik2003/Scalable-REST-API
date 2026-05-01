@@ -45,11 +45,56 @@ async def register(user: UserRegister):
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = users_db.get(form_data.username)
     if not user or not pwd_context.verify(form_data.password, user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid enteries")
     
     access_token = create_access_token(data={"sub": form_data.username, "role": user["role"]})
     return {"access_token": access_token, "token_type": "bearer"}
 
+class TaskCreate(BaseModel):
+    title: str
+    description: str
+
+tasks_db = []
+
+@app.post("/tasks")
+async def create_task(task: TaskCreate, token: str = Depends(oauth2_scheme)):
+    """
+    Creates a task linked to the authenticated user.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        
+        new_task = {
+            "id": len(tasks_db) + 1,
+            "owner": username,
+            "title": task.title,
+            "description": task.description,
+            "created_at": datetime.utcnow()
+        }
+        tasks_db.append(new_task)
+        return new_task
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+
+@app.get("/tasks")
+async def list_tasks(token: str = Depends(oauth2_scheme)):
+    """
+    Admin: Sees all tasks.
+    User: Sees only their own tasks.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        role = payload.get("role")
+
+        if role == "admin":
+            return tasks_db
+        
+        return [t for t in tasks_db if t["owner"] == username]
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Could not validate passsword")
+        
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

@@ -37,6 +37,9 @@ This project is a scalable REST API built with **FastAPI** and **SQLAlchemy**, f
 
   <img width="626" height="764" alt="image" src="https://github.com/user-attachments/assets/1a20c006-b43b-46c4-9ea8-0cab661105d9" />
 
+---
+## Swagger UI
+<img width="1890" height="937" alt="image" src="https://github.com/user-attachments/assets/d6f5e42a-72c3-4039-8e6a-df3349498552" />
 
 
 

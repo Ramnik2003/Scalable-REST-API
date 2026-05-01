@@ -1,1 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager - Backend Intern Project</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; line-height: 1.6; background-color: #f4f7f6; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input, select, button { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #2c3e50; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:hover { background-color: #34495e; }
+        .error { color: #e74c3c; font-size: 0.9em; margin-bottom: 10px; }
+        .success { color: #27ae60; font-size: 0.9em; margin-bottom: 10px; }
+        #taskList { padding-left: 0; list-style: none; }
+        #taskList li { background: #fff; border-bottom: 1px solid #eee; padding: 10px; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
 
+    <div id="authContainer" class="card">
+        <h2 id="authTitle">User Registration</h2>
+        <div id="authMessage"></div>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <select id="role">
+            <option value="user">User Role</option>
+            <option value="admin">Admin Role</option>
+        </select>
+        <button onclick="register()">Register</button>
+        <button style="background: none; color: #2c3e50; text-decoration: underline;" onclick="toggleAuth()">Already have an account? Login</button>
+    </div>
+
+    <div id="dashboard" class="card" style="display: none;">
+        <h2>Dashboard</h2>
+        <p>Logged in as: <strong id="currentUser"></strong></p>
+        <button onclick="logout()" style="background: #e74c3c; width: auto; padding: 5px 15px;">Logout</button>
+        <hr>
+        <h3>Add New Task</h3>
+        <input type="text" id="taskTitle" placeholder="Task Title">
+        <input type="text" id="taskDesc" placeholder="Description">
+        <button onclick="createTask()">Create Task</button>
+        <h3>Your Tasks</h3>
+        <ul id="taskList"></ul>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        let accessToken = "";
+        let isLoginMode = false;
+
+        function toggleAuth() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('authTitle').innerText = isLoginMode ? "User Login" : "User Registration";
+            document.getElementById('role').style.display = isLoginMode ? "none" : "block";
+            document.getElementById('authMessage').innerHTML = "";
+        }
+
+        async function register() {
+            if (isLoginMode) return login();
+            const payload = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                role: document.getElementById('role').value
+            };
+            const response = await fetch(`${API_URL}/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            const msgDiv = document.getElementById('authMessage');
+            if (response.ok) {
+                msgDiv.innerHTML = `<p class="success">${result.message}. You can now login.</p>`;
+                toggleAuth();
+            } else {
+                msgDiv.innerHTML = `<p class="error">${result.detail}</p>`;
+            }
+        }
+
+        async function login() {
+            const formData = new FormData();
+            formData.append('username', document.getElementById('username').value);
+            formData.append('password', document.getElementById('password').value);
+
+            const response = await fetch(`${API_URL}/login`, { method: 'POST', body: formData });
+            const result = await response.json();
+            
+            if (response.ok) {
+                accessToken = result.access_token;
+                document.getElementById('authContainer').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                document.getElementById('currentUser').innerText = document.getElementById('username').value;
+                fetchTasks();
+            } else {
+                document.getElementById('authMessage').innerHTML = `<p class="error">${result.detail}</p>`;
+            }
+        }
+
+        async function fetchTasks() {
+            const response = await fetch(`${API_URL}/tasks`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            const tasks = await response.json();
+            const list = document.getElementById('taskList');
+            list.innerHTML = tasks.map(t => `<li><strong>${t.title}</strong>: ${t.description} <span>(${t.owner})</span></li>`).join('');
+        }
+
+        async function createTask() {
+            const payload = {
+                title: document.getElementById('taskTitle').value,
+                description: document.getElementById('taskDesc').value
+            };
+            await fetch(`${API_URL}/tasks`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify(payload)
+            });
+            document.getElementById('taskTitle').value = "";
+            document.getElementById('taskDesc').value = "";
+            fetchTasks();
+        }
+
+        function logout() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>

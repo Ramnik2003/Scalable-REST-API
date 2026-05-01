@@ -27,8 +27,8 @@
             <option value="user">User Role</option>
             <option value="admin">Admin Role</option>
         </select>
-        <button onclick="register()">Register</button>
-        <button style="background: none; color: #2c3e50; text-decoration: underline;" onclick="toggleAuth()">Already have an account? Login</button>
+        <button id="authBtn" onclick="register()">Register</button>
+        <button style="background: none; color: #2c3e50; text-decoration: underline;" id="toggleBtn" onclick="toggleAuth()">Already have an account? Login</button>
     </div>
 
     <div id="dashboard" class="card" style="display: none;">
@@ -51,8 +51,19 @@
 
         function toggleAuth() {
             isLoginMode = !isLoginMode;
-            document.getElementById('authTitle').innerText = isLoginMode ? "User Login" : "User Registration";
-            document.getElementById('role').style.display = isLoginMode ? "none" : "block";
+
+            if (isLoginMode) {
+                document.getElementById('authTitle').innerText = "User Login";
+                document.getElementById('authBtn').innerText = "Sign In";
+                document.getElementById('toggleBtn').innerText = "Don't have an account? Create one";
+                document.getElementById('role').style.display = "none";
+            } else {
+                document.getElementById('authTitle').innerText = "User Registration";
+                document.getElementById('authBtn').innerText = "Register";
+                document.getElementById('toggleBtn').innerText = "Already have an account? Login";
+                document.getElementById('role').style.display = "block";
+            }
+
             document.getElementById('authMessage').innerHTML = "";
         }
 
